@@ -12,58 +12,154 @@ import { useState, useEffect, useRef } from "react";
  */
 function useAudioPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audio, setAudio] = useState(new Audio());
-  const trackIdPlaying = useRef(null);
+  // const [audio, setAudio] = useState(new Audio());
+  const audioRef = useRef(null);
+  const audioIdPlaying = useRef(null);
+  const audioType = useRef(null);
+  const [volume, setVolume] = useState(30);
 
-  const handleClick = (event) => {
-    const audioSrc = event.target.getAttribute("data-audio-src");
-    const trackId = event.target.getAttribute("data-track-id");
+  const handleClick = (event, type, sound, id) => {
+    const audioId = id;
+    audioType.current = type;
 
-    if (trackId == trackIdPlaying.current) {
-      //same track clicked by the user, so pause the song; assume song is already playing
-      audio.pause();
-      audio.currentTime = 0;
-      setIsPlaying(false);
-      trackIdPlaying.current = null;
-    } else {
-      //if audio is already playing, stop it, and play the new audio
-      if (isPlaying) {
-        audio.pause();
-        audio.currentTime = 0;
-        setIsPlaying(false);
-        setAudio(new Audio(`/assets/sound/track/${audioSrc}.mp3`));
-        trackIdPlaying.current = trackId;
-      }
-      //else, directly play the new audio
-      else {
-        setAudio(new Audio(`/assets/sound/track/${audioSrc}.mp3`));
-        trackIdPlaying.current = trackId;
-      }
+    switch (type) {
+      case "track":
+        const audioSrc = event.target.getAttribute("data-audio-src");
+        const trackId = event.target.getAttribute("data-track-id");
+        if (trackId == audioIdPlaying.current) {
+          try {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setIsPlaying(false);
+            audioIdPlaying.current = null;
+          } catch (error) {
+            console.log("Error pausing track:", error);
+          }
+        } else {
+          if (audioRef.current) {
+            try {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+            } catch (error) {
+              console.log("Error pausing track:", error);
+            }
+          }
+          audioRef.current = new Audio(`/assets/sound/${type}/${audioSrc}.mp3`);
+          try {
+            audioRef.current.play().then(() => {
+              setIsPlaying(true);
+              audioIdPlaying.current = trackId;
+            });
+          } catch (error) {
+            console.log("Error playing track:", error);
+          }
+        }
+        break;
+
+      case "effect":
+        if (audioId == audioIdPlaying.current && type === audioType.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+          setIsPlaying(false);
+          audioIdPlaying.current = null;
+          audioType.current = null;
+        } else {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+          audioRef.current = new Audio(`/assets/sound/${type}/${sound}.mp3`);
+          audioRef.current.volume = type === "effect" ? volume / 100 : 1;
+          audioIdPlaying.current = audioId;
+          audioType.current = type;
+          setIsPlaying(true);
+        }
+        break;
     }
+
+    // if (audioId == audioIdPlaying.current && type === audioType.current) {
+    //   audioRef.current.pause();
+    //   audioRef.current.currentTime = 0;
+    //   setIsPlaying(false);
+    //   audioIdPlaying.current = null;
+    //   audioType.current = null;
+    // } else {
+    //   if (audioRef.current) {
+    //     audioRef.current.pause();
+    //     audioRef.current.currentTime = 0;
+    //   }
+    //   audioRef.current = new Audio(`/assets/sound/${type}/${sound}.mp3`);
+    //   audioRef.current.volume = type === "effect" ? volume / 100 : 1;
+    //   audioIdPlaying.current = audioId;
+    //   audioType.current = type;
+    //   setIsPlaying(true);
+    // }
   };
 
-  // Cleanup function when component unmounts
+  const handleVolumeChange = (newValue) => {
+    setVolume(newValue);
+  };
+
   useEffect(() => {
-    if (audio != null && isPlaying === true) {
-      audio.pause();
-      audio.currentTime = 0;
-      setIsPlaying(false);
-    } else if (audio != null && isPlaying === false) {
-      audio.loop = true;
-      audio
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((error) => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+    }
+  }, [volume]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.loop = true;
+        audioRef.current.play().catch((error) => {
           console.log("Error playing media: ", error);
         });
-    } else {
-      console.log("No audio selected");
+      } else {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
-  }, [audio]);
+  }, [isPlaying]);
 
-  return { isPlaying, handleClick, trackIdPlaying };
+  useEffect(() => {
+    if (audioType.current === "track") {
+      if (audioRef.current && isPlaying) {
+        audioRef.current.loop = true;
+        try {
+          audioRef.current.play();
+        } catch (error) {
+          console.log("Error playing track:", error);
+        }
+      } else if (audioRef.current && !isPlaying) {
+        try {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        } catch (error) {
+          console.log("Error pausing track:", error);
+        }
+      }
+    }
+
+    return () => {
+      if (audioRef.current) {
+        try {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        } catch (error) {
+          console.log("Error pausing track on unmount:", error);
+        }
+      }
+    };
+  }, [isPlaying, audioType.current]);
+
+  return {
+    isPlaying,
+    handleClick,
+    audioIdPlaying,
+    audioType,
+    volume,
+    handleVolumeChange,
+    audioRef,
+  };
 }
 
 export default useAudioPlayer;

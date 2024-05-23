@@ -8,7 +8,7 @@ import useAudioPlayer from "../lib/useAudioPlayer";
  * @returns {JSX.Element} The rendered Tracks component.
  */
 const Tracks = () => {
-  const { isPlaying, handleClick, trackIdPlaying } = useAudioPlayer();
+  const { isPlaying, handleClick, audioIdPlaying } = useAudioPlayer();
 
   return (
     <>
@@ -28,10 +28,10 @@ const Tracks = () => {
                 name={track.name}
                 desc={track.desc}
                 sound={track.sound}
+                id={track.id}
                 onClick={handleClick}
-                id={index}
+                trackPlaying={audioIdPlaying.current}
                 playingStatus={isPlaying}
-                trackPlaying={trackIdPlaying.current}
               />
             );
           })}

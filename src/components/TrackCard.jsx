@@ -25,7 +25,7 @@ const TrackCard = (props) => {
             `overflow-hidden rounded-md min-w-max cursor-pointer` /*props.trackPlaying==props.id && props.playingStatus  ? 'border-4 border-gray-800' : 'border border-transparent'*/
           }
           onClick={(event) => {
-            props.onClick(event);
+            props.onClick(event, "track", props.sound, props.id);
           }}
         >
           <img

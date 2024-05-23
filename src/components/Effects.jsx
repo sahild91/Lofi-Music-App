@@ -22,6 +22,7 @@ const Effects = () => {
               name={effect.name}
               sound={effect.sound}
               src={effect.src}
+              id={index}
             />
           );
         })}
